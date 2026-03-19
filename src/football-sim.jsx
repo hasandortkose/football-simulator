@@ -292,31 +292,122 @@ return<div style={{position:"fixed",inset:0,zIndex:10000,background:`linear-grad
 
 /* ═══ MODE SELECT ═══ */
 function ModeSelect({onSelect,hasSaveData,onContinue,onTutorial}){
-return<div style={{minHeight:"100vh",background:`linear-gradient(160deg,${T.bg} 0%,${T.bg3} 50%,${T.bg} 100%)`,color:T.tx,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",fontFamily:T.font,padding:30}}>
-<style>{`@keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}@keyframes glow{0%,100%{box-shadow:0 0 20px rgba(139,92,246,.15)}50%{box-shadow:0 0 40px rgba(139,92,246,.3)}}@keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}`}</style>
-<div style={{fontSize:80,marginBottom:16,animation:"float 3s ease-in-out infinite",filter:"drop-shadow(0 8px 20px rgba(139,92,246,.3))"}}>⚽</div>
-<h1 style={{fontSize:46,fontWeight:900,margin:"0 0 8px",background:`linear-gradient(135deg,${T.accent},${T.go},${T.accent})`,backgroundSize:"200% auto",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",animation:"shimmer 3s linear infinite",letterSpacing:".04em"}}>FOOTBALL SIMULATOR</h1>
-<p style={{color:T.txd,fontSize:15,margin:"0 0 20px",letterSpacing:".03em"}}>36 Lig • 600+ Takım • 10.000+ Oyuncu</p>
+const[page,setPage]=useState("home");const[hov,setHov]=useState(null);
+// Counter animation
+const Counter=({end,dur})=>{const[v,setV]=useState(0);useEffect(()=>{let s=0;const step=end/(dur/16);const iv=setInterval(()=>{s+=step;if(s>=end){setV(end);clearInterval(iv)}else setV(Math.floor(s))},16);return()=>clearInterval(iv)},[end,dur]);return<span>{v.toLocaleString()}</span>};
 
-{/* Continue + Tutorial buttons */}
-<div style={{display:"flex",gap:10,marginBottom:28,animation:"fadeUp .4s ease"}}>
-{hasSaveData&&<button onClick={onContinue} style={{padding:"10px 24px",borderRadius:10,background:`linear-gradient(135deg,${T.accent},${T.bg3})`,border:`1px solid ${T.accent}40`,color:"#fff",fontSize:14,fontWeight:800,boxShadow:`0 4px 20px ${T.accent}30`}}>▶ DEVAM ET</button>}
-<button onClick={onTutorial} style={{padding:"10px 20px",borderRadius:10,background:T.card,border:`1px solid ${T.gb}`,color:T.txd,fontSize:12,fontWeight:700}}>❓ Nasıl Oynanır</button>
+const modes=[
+{id:"manager",icon:"🏢",title:"MENAJER KARİYERİ",desc:"Kulübü yönet, transfer yap, şampiyonluk kazan",color:T.accent,glow:"139,92,246",
+detail:"Dünya'nın en prestijli kulüplerinden birini seç ve zirvere taşı. Transfer pazarında stratejik hamleler yap, genç yetenekleri keşfet, taktik kur ve takımını şampiyonluğa taşı. 36 ligde 600+ takım seni bekliyor."},
+{id:"legend",icon:"⭐",title:"EFSANE OL",desc:"Kendi futbolcunu yarat, efsane bir kariyer inşa et",color:T.go,glow:"251,191,36",
+detail:"Kendi futbolcunu sıfırdan yarat — isim, pozisyon, yetenekler senin elinde. Sahada gol at, asist yap, potansiyelini artır. Saha dışında lüks arabalar, malikâneler, sponsorluk anlaşmaları ve sosyal hayatınla bir efsane ol."},
+{id:"spectator",icon:"📺",title:"İZLEYİCİ MODU",desc:"Ligleri izle, tahmin yap, sonuçları takip et",color:T.li,glow:"74,222,128",
+detail:"Tanrı modunda 36 ligin tamamını izle. Maçları simüle et, puan tablolarını takip et, şampiyonluk yarışını gözlemle. Avrupa Kupası'nda hangi takım şampiyon olacak? Tahmin et ve izle."}
+];
+
+const nav=["home",...modes.map(m=>m.id)];
+const navLabels={home:"ANA SAYFA",manager:"MENAJER",legend:"EFSANE OL",spectator:"İZLEYİCİ"};
+const activeModeData=modes.find(m=>m.id===page);
+
+return<div style={{minHeight:"100vh",background:T.bg,color:T.tx,fontFamily:T.font,position:"relative",overflow:"hidden"}}>
+<style>{`
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+@keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
+@keyframes glow{0%,100%{opacity:.3}50%{opacity:.6}}
+@keyframes moveLight{0%{transform:translateX(-100%) rotate(45deg)}100%{transform:translateX(200%) rotate(45deg)}}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}
+@keyframes slideIn{from{opacity:0;transform:translateX(30px)}to{opacity:1;transform:translateX(0)}}
+.nav-item{position:relative;padding:12px 18px;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:${T.txd};cursor:pointer;transition:all .2s;border:none;background:transparent}
+.nav-item:hover,.nav-item.active{color:#fff}
+.nav-item::after{content:'';position:absolute;bottom:0;left:50%;width:0;height:2px;background:linear-gradient(90deg,${T.accent},${T.go});transition:all .3s;transform:translateX(-50%);border-radius:2px}
+.nav-item:hover::after,.nav-item.active::after{width:70%}
+.nav-item:hover{text-shadow:0 0 20px rgba(139,92,246,.5)}
+.mode-card{transition:all .3s ease;cursor:pointer}
+.mode-card:hover{transform:scale(1.05) translateY(-8px)!important}
+`}</style>
+
+{/* Animated background lights */}
+<div style={{position:"absolute",inset:0,overflow:"hidden",pointerEvents:"none"}}>
+<div style={{position:"absolute",top:"-20%",left:"-10%",width:"50%",height:"50%",background:`radial-gradient(ellipse,rgba(139,92,246,.08) 0%,transparent 70%)`,animation:"glow 6s ease infinite"}}/>
+<div style={{position:"absolute",bottom:"-20%",right:"-10%",width:"60%",height:"60%",background:`radial-gradient(ellipse,rgba(251,191,36,.05) 0%,transparent 70%)`,animation:"glow 8s ease infinite 2s"}}/>
+<div style={{position:"absolute",top:"30%",left:"-20%",width:"140%",height:"2px",background:`linear-gradient(90deg,transparent,rgba(139,92,246,.15),transparent)`,animation:"moveLight 8s linear infinite",transform:"rotate(45deg)"}}/>
+<div style={{position:"absolute",top:"60%",left:"-20%",width:"140%",height:"1px",background:`linear-gradient(90deg,transparent,rgba(251,191,36,.1),transparent)`,animation:"moveLight 12s linear infinite 3s",transform:"rotate(45deg)"}}/>
 </div>
 
-<div style={{display:"flex",gap:20,flexWrap:"wrap",justifyContent:"center"}}>
-{[{id:"manager",icon:"🏢",title:"MENAJER KARİYERİ",desc:"Kulübü yönet, transfer yap, şampiyonluk kazan",color:T.accent,glow:"139,92,246"},{id:"legend",icon:"⭐",title:"EFSANE OL",desc:"Kendi futbolcunu yarat, efsane bir kariyer inşa et",color:T.go,glow:"251,191,36"},{id:"spectator",icon:"📺",title:"İZLEYİCİ MODU",desc:"Ligleri izle, tahmin yap, sonuçları takip et",color:T.li,glow:"74,222,128"}].map((m,i)=>
-<button key={m.id} onClick={()=>onSelect(m.id)} style={{width:280,padding:"44px 28px",borderRadius:16,background:`linear-gradient(145deg,${T.card},${T.panel})`,border:`1px solid rgba(${m.glow},.2)`,display:"flex",flexDirection:"column",alignItems:"center",gap:16,cursor:"pointer",animation:`fadeUp .6s ${i*.15}s ease both`,textAlign:"center",boxShadow:`0 8px 32px rgba(0,0,0,.3), 0 0 0 1px rgba(${m.glow},.05)`}}>
-<div style={{fontSize:56,marginBottom:4,filter:`drop-shadow(0 4px 12px rgba(${m.glow},.3))`}}>{m.icon}</div>
-<div style={{fontSize:16,fontWeight:800,color:m.color,letterSpacing:".1em",textTransform:"uppercase"}}>{m.title}</div>
+{/* GLASSMORPHISM NAVBAR */}
+<nav style={{position:"fixed",top:0,left:0,right:0,zIndex:100,background:"rgba(26,16,64,.75)",backdropFilter:"blur(20px)",WebkitBackdropFilter:"blur(20px)",borderBottom:`1px solid ${T.gb}`,display:"flex",alignItems:"center",justifyContent:"center",padding:"0 20px"}}>
+<div style={{display:"flex",alignItems:"center",gap:6,marginRight:"auto",padding:"10px 0"}}>
+<span style={{fontSize:22}}>⚽</span>
+<span style={{fontSize:14,fontWeight:900,color:T.accent,letterSpacing:".06em"}}>FOOTBALL SIM</span>
+</div>
+<div style={{display:"flex",alignItems:"center"}}>
+{Object.entries(navLabels).map(([k,label])=><button key={k} className={`nav-item${page===k?" active":""}`} onClick={()=>setPage(k)} style={{color:page===k?"#fff":T.txd}}>{label}</button>)}
+</div>
+<div style={{marginLeft:"auto",display:"flex",gap:6,padding:"10px 0"}}>
+{hasSaveData&&<button onClick={onContinue} style={{padding:"7px 16px",borderRadius:8,background:`linear-gradient(135deg,${T.accent},${T.bg3})`,border:`1px solid ${T.accent}30`,color:"#fff",fontSize:11,fontWeight:800}}>▶ DEVAM ET</button>}
+<button onClick={onTutorial} style={{padding:"7px 12px",borderRadius:8,background:"rgba(255,255,255,.05)",border:`1px solid ${T.gb}`,color:T.txd,fontSize:11,fontWeight:600}}>❓</button>
+</div>
+</nav>
+
+{/* CONTENT AREA */}
+<div style={{paddingTop:56,minHeight:"100vh",position:"relative",zIndex:1}}>
+
+{/* HOME PAGE */}
+{page==="home"&&<div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",minHeight:"calc(100vh - 56px)",padding:"40px 20px"}}>
+<div style={{fontSize:90,marginBottom:20,animation:"float 3s ease-in-out infinite",filter:"drop-shadow(0 10px 30px rgba(139,92,246,.4))"}}>⚽</div>
+<h1 style={{fontSize:52,fontWeight:900,margin:"0 0 10px",background:`linear-gradient(135deg,${T.accent},${T.go},${T.accent})`,backgroundSize:"200% auto",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",animation:"shimmer 3s linear infinite",letterSpacing:".05em",textAlign:"center"}}>FOOTBALL SIMULATOR</h1>
+
+{/* Counter stats */}
+<div style={{display:"flex",gap:32,margin:"20px 0 40px",animation:"fadeUp .6s ease"}}>
+{[{n:36,label:"LİG",suf:"+"},{n:600,label:"TAKIM",suf:"+"},{n:10000,label:"OYUNCU",suf:"+"}].map((s,i)=>
+<div key={i} style={{textAlign:"center"}}>
+<div style={{fontSize:28,fontWeight:900,color:"#fff"}}><Counter end={s.n} dur={2000}/><span style={{color:T.go}}>{s.suf}</span></div>
+<div style={{fontSize:10,color:T.txd,letterSpacing:".12em",textTransform:"uppercase",marginTop:2}}>{s.label}</div>
+</div>)}
+</div>
+
+{/* Mode cards */}
+<div style={{display:"flex",gap:24,flexWrap:"wrap",justifyContent:"center",maxWidth:1000}}>
+{modes.map((m,i)=>
+<div key={m.id} className="mode-card" onClick={()=>setPage(m.id)} onMouseEnter={()=>setHov(m.id)} onMouseLeave={()=>setHov(null)}
+style={{width:280,padding:"48px 28px 36px",borderRadius:20,background:`linear-gradient(160deg,${T.card},${T.panel})`,border:`1px solid rgba(${m.glow},${hov===m.id?.35:.12})`,display:"flex",flexDirection:"column",alignItems:"center",gap:16,textAlign:"center",animation:`fadeUp .6s ${i*.12}s ease both`,boxShadow:hov===m.id?`0 12px 40px rgba(${m.glow},.25), 0 0 60px rgba(${m.glow},.1)`:`0 8px 32px rgba(0,0,0,.3)`}}>
+<div style={{fontSize:60,marginBottom:4,filter:`drop-shadow(0 6px 16px rgba(${m.glow},.4))`,transition:"transform .3s",transform:hov===m.id?"scale(1.15)":"scale(1)"}}>{m.icon}</div>
+<div style={{fontSize:18,fontWeight:900,color:m.color,letterSpacing:".12em",textTransform:"uppercase"}}>{m.title}</div>
 <div style={{fontSize:12,color:T.txd,lineHeight:1.6}}>{m.desc}</div>
-<div style={{marginTop:4,padding:"6px 20px",borderRadius:20,background:`rgba(${m.glow},.12)`,border:`1px solid rgba(${m.glow},.2)`,fontSize:11,fontWeight:700,color:m.color}}>OYNA →</div>
-</button>)}
+<div style={{marginTop:8,padding:"8px 28px",borderRadius:24,background:`rgba(${m.glow},.12)`,border:`1px solid rgba(${m.glow},.25)`,fontSize:12,fontWeight:800,color:m.color,transition:"all .2s",boxShadow:hov===m.id?`0 0 20px rgba(${m.glow},.3)`:"none"}}>KEŞFET →</div>
+</div>)}
 </div>
 
-{/* Footer SEO text */}
-<div style={{marginTop:40,textAlign:"center",maxWidth:600,animation:"fadeUp .8s ease"}}>
-<p style={{fontSize:10,color:T.txd,lineHeight:1.6}}>Football Simulator — Türkiye, İspanya, Almanya, İngiltere, İtalya, Fransa, Hollanda, İskoçya, İsviçre, Yunanistan, Belçika ve Portekiz ligleriyle ücretsiz online futbol menajer simülasyonu. Tarayıcıda oyna, indirme gerektirmez.</p>
+{/* SEO footer */}
+<div style={{marginTop:50,textAlign:"center",maxWidth:600,animation:"fadeUp 1s ease"}}>
+<p style={{fontSize:10,color:T.txd,lineHeight:1.7}}>Football Simulator — Türkiye, İspanya, Almanya, İngiltere, İtalya, Fransa, Hollanda, İskoçya, İsviçre, Yunanistan, Belçika ve Portekiz ligleriyle ücretsiz online futbol menajer simülasyonu.</p>
+</div>
+</div>}
+
+{/* MODE DETAIL PAGES */}
+{activeModeData&&<div style={{display:"flex",alignItems:"center",justifyContent:"center",minHeight:"calc(100vh - 56px)",padding:"40px 20px",animation:"fadeIn .4s ease"}}>
+<div style={{maxWidth:600,textAlign:"center"}}>
+<div style={{fontSize:80,marginBottom:20,animation:"pulse 2s ease infinite",filter:`drop-shadow(0 8px 24px rgba(${activeModeData.glow},.4))`}}>{activeModeData.icon}</div>
+<h2 style={{fontSize:36,fontWeight:900,color:activeModeData.color,letterSpacing:".1em",textTransform:"uppercase",margin:"0 0 16px",textShadow:`0 0 40px rgba(${activeModeData.glow},.3)`}}>{activeModeData.title}</h2>
+<p style={{fontSize:14,color:T.tx2,lineHeight:1.8,margin:"0 0 32px",animation:"slideIn .5s ease"}}>{activeModeData.detail}</p>
+
+<div style={{display:"flex",gap:12,justifyContent:"center",animation:"fadeUp .6s ease"}}>
+<button onClick={()=>onSelect(activeModeData.id)} style={{padding:"14px 40px",borderRadius:14,background:`linear-gradient(135deg,rgba(${activeModeData.glow},.8),rgba(${activeModeData.glow},.4))`,border:"none",color:"#fff",fontSize:16,fontWeight:900,letterSpacing:".08em",cursor:"pointer",boxShadow:`0 6px 30px rgba(${activeModeData.glow},.35)`,textTransform:"uppercase"}}>KARİYERİ BAŞLAT</button>
+<button onClick={()=>setPage("home")} style={{padding:"14px 24px",borderRadius:14,background:"rgba(255,255,255,.05)",border:`1px solid ${T.gb}`,color:T.txd,fontSize:13,fontWeight:700,cursor:"pointer"}}>← GERİ</button>
+</div>
+
+{/* Feature highlights */}
+<div style={{display:"flex",gap:12,justifyContent:"center",marginTop:32,flexWrap:"wrap",animation:"fadeUp .8s ease"}}>
+{(activeModeData.id==="manager"?["⚽ 36 Lig","💰 Transfer Pazarı","🏆 Avrupa Kupası","📊 Detaylı İstatistik"]:
+activeModeData.id==="legend"?["🌟 Karakter Yaratma","💎 Lüks Yaşam","💕 Sosyal Hayat","🏷️ Sponsorluklar"]:
+["📺 Canlı Simülasyon","📈 Puan Tablosu","🏆 Avrupa Kupası","🔄 Küme Düşme"]).map((f,i)=>
+<div key={i} style={{padding:"8px 16px",borderRadius:10,background:T.card,border:`1px solid ${T.gb}`,fontSize:11,color:T.tx2,fontWeight:600}}>{f}</div>)}
+</div>
+</div>
+</div>}
+
 </div>
 </div>}
 
