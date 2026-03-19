@@ -20,6 +20,40 @@ const hasSave=()=>{try{return!!localStorage.getItem(SAVE_KEY)}catch(e){return fa
 const useWindowSize=()=>{const[s,setS]=useState({w:typeof window!=="undefined"?window.innerWidth:1200,h:typeof window!=="undefined"?window.innerHeight:800});
 useEffect(()=>{const h=()=>setS({w:window.innerWidth,h:window.innerHeight});window.addEventListener("resize",h);return()=>window.removeEventListener("resize",h)},[]);return s};
 
+/* ═══ PWA REGISTRATION ═══ */
+const registerSW=()=>{if("serviceWorker"in navigator){navigator.serviceWorker.register("/service-worker.js").catch(()=>{})}};
+
+/* ═══ HAPTIC FEEDBACK ═══ */
+const haptic=(type)=>{try{if(navigator.vibrate){if(type==="goal")navigator.vibrate([100,50,100,50,200]);
+else if(type==="transfer")navigator.vibrate([50,30,50]);
+else if(type==="card")navigator.vibrate(80);
+else navigator.vibrate(30)}}catch(e){}};
+
+/* ═══ MOBILE BOTTOM NAV ═══ */
+function BottomNav({vw,setVw,isMobile,showMkt,setShowMkt,gameMode}){
+if(!isMobile)return null;
+const items=[{k:"matches",icon:"⚽",label:"Maçlar"},{k:"standings",icon:"📊",label:"Puan"},{k:"squad",icon:"👥",label:"Kadro"},
+gameMode==="legend"?{k:"life",icon:"💎",label:"Hayat"}:{k:"offers",icon:"📨",label:"Teklifler"},
+{k:"social",icon:"📱",label:"Medya"}];
+return<div style={{position:"fixed",bottom:0,left:0,right:0,zIndex:1001,background:"rgba(21,13,56,.95)",backdropFilter:"blur(16px)",WebkitBackdropFilter:"blur(16px)",borderTop:`1px solid ${T.gb}`,display:"flex",padding:"4px 0 env(safe-area-inset-bottom,4px)",boxShadow:"0 -4px 20px rgba(0,0,0,.3)"}}>
+{items.map(it=><button key={it.k} onClick={()=>{haptic();setVw(it.k)}} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:2,padding:"8px 4px",minHeight:50,background:"transparent",color:vw===it.k?T.accent:T.txd,transition:"all .15s"}}>
+<span style={{fontSize:18,filter:vw===it.k?`drop-shadow(0 0 6px ${T.accent})`:"none"}}>{it.icon}</span>
+<span style={{fontSize:9,fontWeight:vw===it.k?800:500}}>{it.label}</span>
+{vw===it.k&&<div style={{position:"absolute",top:0,width:24,height:2,borderRadius:1,background:T.accent}}/>}
+</button>)}
+</div>}
+
+/* ═══ MARQUEE NEWS BANNER ═══ */
+function NewsBanner({socialFeed,isMobile}){
+if(!isMobile||!socialFeed.length)return null;
+const text=socialFeed.slice(0,5).map(s=>s.text).join("  •  ");
+return<div style={{position:"fixed",top:0,left:0,right:0,zIndex:1002,background:`linear-gradient(90deg,${T.accent}dd,${T.bg3}dd)`,padding:"4px 0",overflow:"hidden",whiteSpace:"nowrap"}}>
+<div style={{display:"inline-block",animation:"marquee 30s linear infinite",fontSize:10,fontWeight:600,color:"#fff"}}>
+{text}  •  {text}
+</div>
+<style>{`@keyframes marquee{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}`}</style>
+</div>}
+
 /* ═══ THEME ═══ */
 const T={bg:"#1a1040",bg2:"#231555",bg3:"#2d1d6b",panel:"#1e1250",sidebar:"#150d38",header:"#2a1a65",glass:"rgba(30,18,80,.7)",gb:"rgba(140,120,255,.12)",cy:"#a78bfa",li:"#4ade80",go:"#fbbf24",warn:"#fb923c",red:"#f87171",tx:"#f1f0f8",tx2:"#c8c4d8",txd:"#8b85a8",font:"'Segoe UI',system-ui,sans-serif",accent:"#8b5cf6",pink:"#f472b6",blue:"#60a5fa",card:"#251760",cardHover:"#2f1d75"};
 const G=(e={})=>({background:T.panel,border:`1px solid ${T.gb}`,borderRadius:10,...e});
@@ -138,6 +172,7 @@ if(l3&&t2down.length>0){const t3uN=t3up.map(x=>x.name);l3.teams=[...l3.teams.fil
 /* ═══ MATCH SIM (compact broadcast) ═══ */
 const TO=t=>[`${t} yükleniyor!`,`${t} golle burun buruna!`,`Şut ama direk!`];const TD=t=>[`${t} duvar ördü!`,`Kaleci devleşiyor!`];const TX=["VAR...","Sert müdahale!"];const TA=["Tempo yükseldi!","Herkes ayakta!"];
 function MSV({hN,aN,hStr,aStr,hSq,aSq,onComplete,uT,cM}){
+const win=useWindowSize();
 const[mn,setMn]=useState(0);const[hs,setHs]=useState(0);const[as2,setAs]=useState(0);const[tk,setTk]=useState([]);const[done,setDone]=useState(false);const[fl,setFl]=useState(null);const[bp,setBp]=useState({x:52.5,y:34});const[ga,setGa]=useState(null);const[sh,setSh]=useState(false);const[lt,setLt]=useState("balanced");const ltR=useRef("balanced");const[intro,setIntro]=useState(true);const[paused,setPaused]=useState(false);const pauseR=useRef(false);const[showStats,setShowStats]=useState(false);const[setPiece,setSetPiece]=useState(null);// "corner_h","corner_a","freekick_h","freekick_a","penalty_h","penalty_a"
 const[plan]=useState(()=>{const p=prP(hStr,aStr,hSq||[],aSq||[],cM||1);
 // Inject set pieces: corners, freekicks, penalties
@@ -171,7 +206,7 @@ const goalX=ev.team==="home"?103:2;const goalY=28+rn(0,12);
 setBp({x:ev.team==="home"?92:13,y:30+rn(0,8)});setTimeout(()=>setBp({x:goalX,y:goalY}),400);
 if(ev.team==="home"){setHs(s=>s+1);z="hG";hShots.current++}else{setAs(s=>s+1);z="aG";aShots.current++}
 setGa(ev.team==="home"?"h":"a");setSh(true);setTimeout(()=>{setSh(false);setGa(null);setBp({x:52.5,y:34})},2500);
-setFl("⚽ GOL!");setTimeout(()=>setFl(null),2e3);
+setFl("⚽ GOL!");haptic("goal");setTimeout(()=>setFl(null),2e3);
 setTk(t=>[...t,{id:Date.now(),text:`⚽ ${c}' GOL! ${ev.player} (${tn})${ev.assist?` | Asist: ${ev.assist}`:""}`,tp:"goal"}])}
 else if(ev.type==="yellow"){hFouls.current++;setTk(t=>[...t,{id:Date.now()+1,text:`🟨 ${c}' ${ev.player} (${tn})`,tp:"yellow"}])}
 else if(ev.type==="red"){setSh(true);setTimeout(()=>setSh(false),500);setTk(t=>[...t,{id:Date.now()+2,text:`🟥 ${c}' KIRMIZI KART! ${ev.player} (${tn})`,tp:"red"}])}});
@@ -217,15 +252,15 @@ return<div style={{position:"fixed",inset:0,zIndex:10000,background:`linear-grad
 <div style={{marginLeft:6,padding:"3px 10px",borderRadius:4,background:paused?`${T.go}15`:done?`${T.red}15`:`${T.cy}10`}}><span style={{fontSize:12,fontWeight:800,color:paused?T.go:done?T.red:T.cy}}>{paused?"DURDURULDU":done?"MS":`${mn}'`}</span></div>
 {!done&&<button onClick={togglePause} style={{padding:"4px 10px",borderRadius:4,background:paused?`${T.li}15`:T.bg3,border:`1px solid ${paused?T.li:T.gb}`,color:paused?T.li:T.txd,fontSize:12,fontWeight:700,cursor:"pointer"}}>{paused?"▶":"⏸"}</button>}
 </div></div>
-{/* Split */}
-<div style={{flex:1,display:"flex",overflow:"hidden",minHeight:0}}>
+{/* Split - column on mobile, row on desktop */}
+<div style={{flex:1,display:"flex",flexDirection:win.w<768?"column-reverse":"row",overflow:"hidden",minHeight:0}}>
 {/* Ticker */}
-<div style={{width:"28%",minWidth:180,display:"flex",flexDirection:"column",borderRight:`1px solid ${T.gb}`}}>
-<div style={{flexShrink:0,padding:"8px 12px",fontSize:10,fontWeight:800,color:T.cy,letterSpacing:".1em",borderBottom:`1px solid ${T.gb}`,display:"flex",justifyContent:"space-between"}}><span>CANLI AKIŞ</span><span style={{color:T.txd}}>{hPossP}%-{100-hPossP}%</span></div>
-<div style={{flex:1,overflowY:"auto",padding:"4px 6px"}}>{tk.map(t=><div key={t.id} style={{padding:"6px 8px",borderRadius:4,fontSize:11,animation:"su .2s",fontWeight:t.tp==="goal"?800:500,marginBottom:2,background:t.tp==="goal"?`${T.li}0a`:t.tp==="red"?`${T.red}08`:T.bg3,borderLeft:`2px solid ${ec[t.tp]||"transparent"}`,color:ec[t.tp]||T.txd}}>{t.text}</div>)}<div ref={ref}/></div></div>
+<div style={{width:win.w<768?"100%":"28%",minWidth:win.w<768?"auto":180,flex:win.w<768?"1":"none",display:"flex",flexDirection:"column",borderRight:win.w>=768?`1px solid ${T.gb}`:"none",borderTop:win.w<768?`1px solid ${T.gb}`:"none"}}>
+<div style={{flexShrink:0,padding:"6px 10px",fontSize:9,fontWeight:800,color:T.cy,letterSpacing:".1em",borderBottom:`1px solid ${T.gb}`,display:"flex",justifyContent:"space-between"}}><span>CANLI AKIŞ</span><span style={{color:T.txd}}>{hPossP}%-{100-hPossP}%</span></div>
+<div style={{flex:1,overflowY:"auto",padding:"4px 6px"}}>{(win.w<768?tk.slice(-6):tk).map(t=><div key={t.id} style={{padding:"5px 7px",borderRadius:4,fontSize:win.w<768?10:11,animation:"su .2s",fontWeight:t.tp==="goal"?800:500,marginBottom:2,background:t.tp==="goal"?`${T.li}0a`:t.tp==="red"?`${T.red}08`:T.bg3,borderLeft:`2px solid ${ec[t.tp]||"transparent"}`,color:ec[t.tp]||T.txd}}>{t.text}</div>)}<div ref={ref}/></div></div>
 {/* Pitch */}
-<div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"4px",position:"relative",minHeight:0}}>
-{fl&&<div style={{position:"absolute",top:"44%",left:"50%",transform:"translate(-50%,-50%)",zIndex:100,fontSize:20,fontWeight:900,color:"#fff",padding:"12px 28px",borderRadius:8,background:fl.includes("GOL")?`${T.li}dd`:fl.includes("PENALTI")?`${T.go}dd`:`${T.red}dd`,boxShadow:`0 0 40px ${fl.includes("GOL")?T.li:T.go}80`,textShadow:"0 2px 8px rgba(0,0,0,.5)"}}>{fl}</div>}
+<div style={{flex:win.w<768?"0 0 55%":"1",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"4px",position:"relative",minHeight:0}}>
+{fl&&<div style={{position:"absolute",top:"44%",left:"50%",transform:"translate(-50%,-50%)",zIndex:100,fontSize:win.w<768?16:20,fontWeight:900,color:"#fff",padding:win.w<768?"8px 20px":"12px 28px",borderRadius:8,background:fl.includes("GOL")?`${T.li}dd`:fl.includes("PENALTI")?`${T.go}dd`:`${T.red}dd`,boxShadow:`0 0 40px ${fl.includes("GOL")?T.li:T.go}80`}}>{fl}</div>}
 <svg viewBox="0 0 105 68" preserveAspectRatio="xMidYMid meet" style={{width:"100%",height:"100%",maxHeight:"calc(100vh - 110px)",display:"block",borderRadius:4}}>
 {/* Grass stripes */}
 {Array.from({length:10},(_,i)=><rect key={i} x={i*10.5} y="0" width="10.5" height="68" fill={i%2===0?"#1a8a40":"#1d9446"}/>)}
@@ -282,11 +317,11 @@ return<div style={{position:"fixed",inset:0,zIndex:10000,background:`linear-grad
 </div>
 <span style={{fontSize:9,color:T.txd}}>90'</span>
 </div>
-{!done&&<div style={{display:"flex",gap:4,marginTop:4}}>{[{id:"attack",l:"⚔️ HÜCUM",c:T.red},{id:"balanced",l:"⚖️ DENGELİ",c:T.cy},{id:"defend",l:"🛡️ SAVUNMA",c:T.li}].map(b=><button key={b.id} onClick={()=>chT(b.id)} style={{padding:"5px 14px",borderRadius:4,fontSize:9,fontWeight:800,background:lt===b.id?`${b.c}15`:T.bg3,border:`1px solid ${lt===b.id?b.c+"25":T.gb}`,color:lt===b.id?b.c:T.txd,cursor:"pointer"}}>{b.l}</button>)}</div>}
+{!done&&<div style={{display:"flex",gap:4,marginTop:4,justifyContent:"center"}}>{[{id:"attack",l:"⚔️ HÜCUM",c:T.red},{id:"balanced",l:"⚖️ DENGELİ",c:T.cy},{id:"defend",l:"🛡️ SAVUNMA",c:T.li}].map(b=><button key={b.id} onClick={()=>{chT(b.id);haptic()}} style={{padding:win.w<768?"10px 18px":"5px 14px",borderRadius:4,fontSize:win.w<768?11:9,fontWeight:800,background:lt===b.id?`${b.c}15`:T.bg3,border:`1px solid ${lt===b.id?b.c+"25":T.gb}`,color:lt===b.id?b.c:T.txd,cursor:"pointer",minHeight:win.w<768?44:"auto"}}>{b.l}</button>)}</div>}
 </div></div>
-{done&&<div style={{flexShrink:0,padding:"8px",display:"flex",justifyContent:"center",gap:8,background:T.header,borderTop:`1px solid ${T.gb}`}}>
-<button onClick={()=>setShowStats(true)} style={{padding:"8px 20px",borderRadius:6,background:T.bg3,border:`1px solid ${T.go}20`,color:T.go,fontSize:12,fontWeight:800,cursor:"pointer"}}>📊 İSTATİSTİKLER</button>
-<button onClick={()=>onComplete({hg:plan.hg,ag:plan.ag,events:plan.events})} style={{padding:"8px 24px",borderRadius:6,background:T.bg3,border:`1px solid ${T.cy}20`,color:T.cy,fontSize:12,fontWeight:800,cursor:"pointer"}}>DEVAM ET →</button>
+{done&&<div style={{flexShrink:0,padding:"8px",display:"flex",justifyContent:"center",gap:8,background:T.header,borderTop:`1px solid ${T.gb}`,paddingBottom:win.w<768?60:8}}>
+<button onClick={()=>setShowStats(true)} style={{padding:win.w<768?"12px 24px":"8px 20px",borderRadius:6,background:T.bg3,border:`1px solid ${T.go}20`,color:T.go,fontSize:12,fontWeight:800,cursor:"pointer",minHeight:win.w<768?48:"auto"}}>📊 İSTATİSTİKLER</button>
+<button onClick={()=>{onComplete({hg:plan.hg,ag:plan.ag,events:plan.events});haptic()}} style={{padding:win.w<768?"12px 24px":"8px 24px",borderRadius:6,background:T.bg3,border:`1px solid ${T.cy}20`,color:T.cy,fontSize:12,fontWeight:800,cursor:"pointer",minHeight:win.w<768?48:"auto"}}>DEVAM ET →</button>
 </div>}
 </div>;}
 
@@ -673,8 +708,8 @@ const[showTutorial,setShowTutorial]=useState(false);
 const[sidebarOpen,setSidebarOpen]=useState(!isMobile);
 const[showSaveMsg,setShowSaveMsg]=useState("");
 
-// SEO injection
-useEffect(()=>{injectSEO()},[]);
+// SEO + PWA
+useEffect(()=>{injectSEO();registerSW()},[]);
 
 // Auto-save every 60 seconds — FULL game state
 useEffect(()=>{if(!gameMode||!uT)return;const iv=setInterval(()=>{try{const data={gameMode,uT,uLK,season,week,budget,morale,sL,vw,myPlayer,weather,style,reputation,
@@ -698,7 +733,7 @@ const[wallet,setWallet]=useState(0);const[lifestyle,setLifestyle]=useState({car:
 const[followers,setFollowers]=useState(1000);const[ego,setEgo]=useState(10);const[sponsor,setSponsor]=useState(null);
 const[gf,setGf]=useState(null);const[gfHappy,setGfHappy]=useState(50);
 const[toasts,setToasts]=useState([]);
-const addToast=(icon,text)=>{const id=Date.now()+Math.random();setToasts(t=>[...t,{id,icon,text}]);setTimeout(()=>setToasts(t=>t.filter(x=>x.id!==id)),4000)};
+const addToast=(icon,text)=>{const id=Date.now()+Math.random();setToasts(t=>[...t,{id,icon,text}]);haptic();setTimeout(()=>setToasts(t=>t.filter(x=>x.id!==id)),4000)};
 const CARS=[{n:"Sıradan Araba",cost:0,rep:0},{n:"Spor Araba",cost:500000,rep:10},{n:"Lüks SUV",cost:1500000,rep:20},{n:"Süper Araba",cost:5000000,rep:35},{n:"Özel Jet",cost:20000000,rep:60}];
 const HOUSES=[{n:"Apartman",cost:0,rep:0},{n:"Rezidans",cost:800000,rep:8},{n:"Villa",cost:3000000,rep:20},{n:"Lüks Villa",cost:10000000,rep:40},{n:"Malikane",cost:30000000,rep:70}];
 const ACCS=[{n:"Yok",cost:0,rep:0},{n:"Lüks Saat",cost:200000,rep:5},{n:"Marka Set",cost:1000000,rep:15},{n:"Koleksiyon",cost:5000000,rep:30}];
@@ -831,7 +866,7 @@ const td={padding:"8px 7px",textAlign:"center",color:T.tx2,fontSize:11};
 const cts=[...new Set(Object.values(al).map(l=>l.ck))];
 
 return<div style={{minHeight:"100vh",background:`linear-gradient(160deg,${T.bg} 0%,#1a0f45 40%,${T.bg} 100%)`,color:T.tx,fontFamily:T.font,display:"flex"}}>
-<style>{`@keyframes cF{0%{top:-20px;opacity:1}100%{top:110vh;opacity:0;transform:rotate(720deg) translateX(80px)}}@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}@keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}*{box-sizing:border-box;scrollbar-width:thin;scrollbar-color:rgba(139,92,246,.15) transparent}::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:rgba(139,92,246,.2);border-radius:4px}button{cursor:pointer;border:none;outline:none;transition:all .15s ease}button:hover{transform:translateY(-1px);filter:brightness(1.1)}`}</style>
+<style>{`@keyframes cF{0%{top:-20px;opacity:1}100%{top:110vh;opacity:0;transform:rotate(720deg) translateX(80px)}}@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}@keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-3px)}75%{transform:translateX(3px)}}*{box-sizing:border-box;scrollbar-width:thin;scrollbar-color:rgba(139,92,246,.15) transparent;-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none}::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:rgba(139,92,246,.2);border-radius:4px}button{cursor:pointer;border:none;outline:none;transition:all .15s ease;-webkit-tap-highlight-color:transparent}button:hover{transform:translateY(-1px);filter:brightness(1.1)}button:active{transform:scale(.96)!important;filter:brightness(.95)!important}@media(max-width:768px){button:hover{transform:none;filter:none}button:active{transform:scale(.95)!important}}`}</style>
 {sC&&<Confetti/>}
 {/* Toast Notifications */}
 {toasts.length>0&&<div style={{position:"fixed",top:12,right:12,zIndex:10010,display:"flex",flexDirection:"column",gap:6,maxWidth:300}}>
@@ -937,7 +972,7 @@ return<button key={k} onClick={()=>{setSL(k);setVw("matches")}} style={{width:"1
 </div>}
 
 {/* MAIN */}
-<div style={{flex:1,minWidth:0,overflowY:"auto",height:"100vh",background:`linear-gradient(180deg,${T.bg2},${T.bg})`,paddingTop:isMobile?48:0}}><div style={{padding:isMobile?"12px 10px":"20px 24px",maxWidth:920,margin:"0 auto"}}>
+<div style={{flex:1,minWidth:0,overflowY:"auto",height:"100vh",background:`linear-gradient(180deg,${T.bg2},${T.bg})`,paddingTop:isMobile?68:0,paddingBottom:isMobile?70:0}}><div style={{padding:isMobile?"10px 8px":"20px 24px",maxWidth:920,margin:"0 auto"}}>
 {/* Ad slot - top banner */}
 <AdSlot size="REKLAM — 728×90" style={{width:"100%",height:50,marginBottom:12}}/>
 <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:18,flexWrap:"wrap",gap:10}}>
@@ -1084,5 +1119,9 @@ return<button key={i} onClick={()=>{if(canBuy){setWallet(w=>w-item.cost);setLife
 
 {/* RIGHT: LIVE FEED - hidden on mobile */}
 {!isMobile&&<LiveFeed socialFeed={socialFeed} uT={uT}/>}
+
+{/* MOBILE: Bottom Nav + News Banner */}
+<NewsBanner socialFeed={socialFeed} isMobile={isMobile}/>
+<BottomNav vw={vw} setVw={setVw} isMobile={isMobile} showMkt={showMkt} setShowMkt={setShowMkt} gameMode={gameMode}/>
 
 </div>;}
